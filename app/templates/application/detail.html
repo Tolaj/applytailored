@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Job Application Detail{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-4">{{ application.company_name }} - {{ application.job_title }}</h1>
+<div class="bg-white p-6 rounded shadow">
+    <h2 class="font-bold text-lg mb-2">Job Description</h2>
+    <p class="mb-4">{{ application.job_description }}</p>
+    
+    <a href="/application/assets/{{ application.id }}" class="text-blue-600 hover:underline">View Generated Assets</a>
+</div>
+{% endblock %}
