@@ -1,0 +1,26 @@
+{% extends "layouts/auth.html" %}
+{% set heading = "Create your account" %}
+
+{% block content %}
+<form method="post" class="space-y-4">
+
+    <input name="name" placeholder="Full name"
+        class="w-full px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-white" />
+
+    <input name="email" type="email" placeholder="Email"
+        class="w-full px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-white" />
+
+    <input name="password" type="password" placeholder="Password"
+        class="w-full px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-white" />
+
+    <button class="w-full py-2 rounded-lg bg-white text-black font-medium hover:bg-gray-200 transition">
+        Sign up
+    </button>
+
+    <p class="text-sm text-center text-zinc-400">
+        Already have an account?
+        <a href="/login" class="text-white underline">Login</a>
+    </p>
+
+</form>
+{% endblock %}

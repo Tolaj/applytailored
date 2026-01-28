@@ -1,0 +1,23 @@
+{% extends "layouts/auth.html" %}
+{% set heading = "Welcome back" %}
+
+{% block content %}
+<form method="post" class="space-y-4">
+
+    <input name="email" type="email" placeholder="Email"
+        class="w-full px-4 py-2      border border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-white" />
+
+    <input name="password" type="password" placeholder="Password"
+        class="w-full px-4 py-2  border border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-white" />
+
+    <button class="w-full py-2 rounded-lg bg-black text-white text-black font-medium hover:bg-gray-200 transition">
+        Login
+    </button>
+
+    <p class="text-sm text-center text-zinc-400">
+        New here?
+        <a href="/signup" class="text-black underline">Create account</a>
+    </p>
+
+</form>
+{% endblock %}

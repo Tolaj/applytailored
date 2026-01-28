@@ -1,14 +1,26 @@
-fastapi
-uvicorn[standard]
-pydantic
-pydantic-settings
-python-dotenv
-motor
-jinja2
-python-multipart
-bcrypt==4.0.1
-passlib[bcrypt]==1.7.4
-python-jose[cryptography]
-pydantic[email]
-PyJWT
-anthropic
+# Core Framework
+Flask==3.0.0
+Werkzeug==3.0.1
+
+# Database
+pymongo==4.6.1
+
+# Authentication
+PyJWT==2.8.0
+
+# AI Services
+anthropic==0.40.0
+
+# Environment Variables
+python-dotenv==1.0.0
+
+# LaTeX Processing (Note: pdflatex must be installed on system)
+# Use: sudo apt-get install texlive-full (Linux)
+# Or: brew install --cask mactex (macOS)
+
+# Optional: For async processing (recommended for production)
+# celery==5.3.4
+# redis==5.0.1
+
+# Development
+# flask-cors==4.0.0  # If you need CORS

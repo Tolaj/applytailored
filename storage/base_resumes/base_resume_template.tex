@@ -1,0 +1,157 @@
+%-------------------------
+% Resume in LaTeX
+% Author: Your Name
+% License: MIT
+%------------------------
+
+\documentclass[letterpaper,11pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Adjust margins
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1in}
+\addtolength{\topmargin}{-.5in}
+\addtolength{\textheight}{1.0in}
+
+\urlstyle{same}
+
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+% Sections formatting
+\titleformat{\section}{
+  \vspace{-4pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule \vspace{-5pt}]
+
+%-------------------------
+% Custom commands
+\newcommand{\resumeItem}[1]{
+  \item\small{
+    {#1 \vspace{-2pt}}
+  }
+}
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-1pt}\item
+    \begin{tabular*}{0.97\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & #2 \\
+      \textit{\small#3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-5pt}
+}
+
+\newcommand{\resumeSubItem}[1]{\resumeItem{#1}\vspace{-4pt}}
+
+\renewcommand{\labelitemii}{$\circ$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=*]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+
+%-------------------------------------------
+%%%%%%  CV STARTS HERE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+%----------HEADING-----------------
+\begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}}r}
+  \textbf{\href{http://yourwebsite.com/}{\Large John Doe}} & Email: \href{mailto:john.doe@email.com}{john.doe@email.com}\\
+  \href{http://yourwebsite.com/}{http://www.yourwebsite.com} & Mobile: +1-123-456-7890 \\
+\end{tabular*}
+
+%-----------SUMMARY-----------------
+\section{Professional Summary}
+  Results-driven software engineer with 5+ years of experience in full-stack development, specializing in Python, JavaScript, and cloud technologies. Proven track record of delivering scalable applications and leading cross-functional teams.
+
+%-----------EXPERIENCE-----------------
+\section{Experience}
+  \resumeSubHeadingListStart
+
+    \resumeSubheading
+      {Senior Software Engineer}{Jan 2021 -- Present}
+      {Tech Company Inc.}{San Francisco, CA}
+      \resumeItemListStart
+        \resumeItem{Led development of microservices architecture serving 1M+ users, improving system reliability by 40\%}
+        \resumeItem{Architected and implemented RESTful APIs using Python/Flask, reducing response time by 35\%}
+        \resumeItem{Mentored team of 5 junior developers, establishing code review practices and best practices}
+        \resumeItem{Implemented CI/CD pipelines using Jenkins and Docker, reducing deployment time from hours to minutes}
+        \resumeItem{Collaborated with product managers and designers to deliver 15+ features ahead of schedule}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {Software Engineer}{Jun 2019 -- Dec 2020}
+      {Startup XYZ}{Remote}
+      \resumeItemListStart
+        \resumeItem{Developed full-stack web applications using React, Node.js, and MongoDB}
+        \resumeItem{Built and deployed machine learning models for recommendation system, increasing user engagement by 25\%}
+        \resumeItem{Optimized database queries and indexing strategies, improving query performance by 60\%}
+        \resumeItem{Participated in agile development process with bi-weekly sprints and daily standups}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {Junior Developer}{May 2018 -- May 2019}
+      {Software Solutions Ltd.}{New York, NY}
+      \resumeItemListStart
+        \resumeItem{Developed responsive web applications using HTML, CSS, JavaScript, and Bootstrap}
+        \resumeItem{Contributed to open-source projects and maintained company's technical documentation}
+        \resumeItem{Assisted in debugging and resolving production issues, reducing critical bugs by 30\%}
+      \resumeItemListEnd
+
+  \resumeSubHeadingListEnd
+
+%-----------EDUCATION-----------------
+\section{Education}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {University of California, Berkeley}{Berkeley, CA}
+      {Bachelor of Science in Computer Science; GPA: 3.8}{Sep 2014 -- May 2018}
+  \resumeSubHeadingListEnd
+
+%-----------SKILLS-----------------
+\section{Technical Skills}
+  \resumeSubHeadingListStart
+    \resumeSubItem{Languages: Python, JavaScript, TypeScript, Java, SQL, HTML/CSS}
+    \resumeSubItem{Frameworks: React, Node.js, Flask, Django, Express.js, Vue.js}
+    \resumeSubItem{Tools \& Technologies: Git, Docker, Kubernetes, AWS, MongoDB, PostgreSQL, Redis}
+    \resumeSubItem{Methodologies: Agile/Scrum, TDD, CI/CD, Microservices Architecture}
+  \resumeSubHeadingListEnd
+
+%-----------PROJECTS-----------------
+\section{Notable Projects}
+  \resumeSubHeadingListStart
+    \resumeSubItem{E-commerce Platform}
+      {Built a scalable e-commerce platform using MERN stack, handling 10K+ daily transactions}
+    \resumeSubItem{AI Chatbot}
+      {Developed an AI-powered customer support chatbot using NLP and machine learning, reducing support tickets by 40\%}
+    \resumeSubItem{Open Source Contributions}
+      {Active contributor to popular open-source projects with 500+ stars on GitHub}
+  \resumeSubHeadingListEnd
+
+%-----------CERTIFICATIONS-----------------
+\section{Certifications}
+  \resumeSubHeadingListStart
+    \resumeSubItem{AWS Certified Solutions Architect -- Associate (2022)}
+    \resumeSubItem{Certified Kubernetes Administrator (2021)}
+  \resumeSubHeadingListEnd
+
+%-------------------------------------------
+\end{document}

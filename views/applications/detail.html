@@ -1,0 +1,214 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block content %}
+<div class="max-w-5xl">
+
+    <!-- Header with Back Button -->
+    <div class="flex items-center gap-4 mb-6">
+        <a href="/applications" class="text-gray-600 hover:text-black">
+            ← Back to Applications
+        </a>
+    </div>
+
+    <!-- Application Info Card -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
+        <div class="flex justify-between items-start mb-4">
+            <div>
+                <h1 class="text-2xl font-semibold mb-2">
+                    {% if application.position_title %}
+                    {{ application.position_title }}
+                    {% else %}
+                    Job Application
+                    {% endif %}
+                </h1>
+
+                {% if application.company_name %}
+                <p class="text-gray-600">{{ application.company_name }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Status Badge -->
+            <span class="px-3 py-1 rounded-full text-sm font-medium
+                {% if application.status == 'completed' %}bg-green-100 text-green-800
+                {% elif application.status == 'processing' %}bg-blue-100 text-blue-800
+                {% elif application.status == 'failed' %}bg-red-100 text-red-800
+                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                {{ application.status|capitalize }}
+            </span>
+        </div>
+
+        <!-- Job Description -->
+        <div class="mt-6">
+            <h3 class="text-sm font-semibold text-gray-700 mb-2">Job Description</h3>
+            <div class="bg-gray-50 rounded-lg p-4 text-sm text-gray-700 max-h-64 overflow-y-auto">
+                {{ application.job_description }}
+            </div>
+        </div>
+
+        <!-- AI Analysis (if available) -->
+        {% if application.ai_analysis %}
+        <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% if application.ai_analysis.required_skills %}
+            <div>
+                <h4 class="text-sm font-semibold text-gray-700 mb-2">Required Skills</h4>
+                <div class="flex flex-wrap gap-2">
+                    {% for skill in application.ai_analysis.required_skills[:5] %}
+                    <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">{{ skill }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if application.ai_analysis.experience_level %}
+            <div>
+                <h4 class="text-sm font-semibold text-gray-700 mb-2">Experience Level</h4>
+                <p class="text-sm text-gray-600 capitalize">{{ application.ai_analysis.experience_level }}</p>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div class="mt-6 flex gap-3">
+            <button onclick="regenerateResume()"
+                class="px-4 py-2 bg-black text-white rounded-md text-sm hover:bg-gray-800">
+                Regenerate Resume
+            </button>
+
+            <button onclick="generateCoverLetter()"
+                class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md text-sm hover:bg-gray-50">
+                Generate Cover Letter
+            </button>
+        </div>
+    </div>
+
+    <!-- Generated Assets -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <h2 class="text-lg font-semibold mb-4">Generated Documents</h2>
+
+        {% if generated_assets %}
+        <div class="space-y-3">
+            {% for asset in generated_assets %}
+            <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
+                <div>
+                    <h3 class="font-medium text-gray-900">{{ asset.title }}</h3>
+                    <p class="text-sm text-gray-500 mt-1">
+                        {{ asset.type|capitalize }} • Version {{ asset.version }} •
+                        {{ asset.created_at.strftime('%B %d, %Y at %I:%M %p') }}
+                    </p>
+                </div>
+
+                <div class="flex gap-2">
+                    {% if asset.pdf_path %}
+                    <a href="/assets/{{ asset._id }}/download"
+                        class="px-3 py-1 bg-black text-white rounded text-sm hover:bg-gray-800">
+                        Download PDF
+                    </a>
+                    {% endif %}
+
+                    {% if asset.type == 'cover_letter' %}
+                    <button onclick="viewCoverLetter('{{ asset.content_text|e }}')"
+                        class="px-3 py-1 border border-gray-300 text-gray-700 rounded text-sm hover:bg-gray-50">
+                        View
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-8 text-gray-500">
+            <p>No documents generated yet.</p>
+            <p class="text-sm mt-2">Click "Regenerate Resume" to create your first tailored resume.</p>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Cover Letter Modal -->
+<div id="coverLetterModal" class="fixed inset-0 bg-black/30 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl w-full max-w-2xl p-6 max-h-[80vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-semibold">Cover Letter</h2>
+            <button onclick="closeCoverLetterModal()" class="text-gray-500 hover:text-gray-700">
+                ✕
+            </button>
+        </div>
+        <div id="coverLetterContent" class="prose max-w-none whitespace-pre-wrap text-sm text-gray-700">
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div id="loadingModal" class="fixed inset-0 bg-black/30 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-8 text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
+        <p class="text-gray-700">Processing with AI...</p>
+    </div>
+</div>
+
+<script>
+    function regenerateResume() {
+        document.getElementById('loadingModal').classList.remove('hidden');
+
+        fetch('/applications/{{ application._id }}/regenerate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loadingModal').classList.add('hidden');
+
+                if (data.success) {
+                    alert('Resume regenerated successfully!');
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                document.getElementById('loadingModal').classList.add('hidden');
+                alert('Error: ' + error.message);
+            });
+    }
+
+    function generateCoverLetter() {
+        document.getElementById('loadingModal').classList.remove('hidden');
+
+        fetch('/applications/{{ application._id }}/cover-letter', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loadingModal').classList.add('hidden');
+
+                if (data.success) {
+                    alert('Cover letter generated successfully!');
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                document.getElementById('loadingModal').classList.add('hidden');
+                alert('Error: ' + error.message);
+            });
+    }
+
+    function viewCoverLetter(content) {
+        document.getElementById('coverLetterContent').textContent = content;
+        document.getElementById('coverLetterModal').classList.remove('hidden');
+    }
+
+    function closeCoverLetterModal() {
+        document.getElementById('coverLetterModal').classList.add('hidden');
+    }
+</script>
+
+{% endblock %}

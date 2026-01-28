@@ -1,0 +1,42 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-semibold">Applications</h1>
+
+    <button onclick="openModal()" class="px-4 py-2 bg-black text-white rounded-md text-sm">
+        Create Application
+    </button>
+</div>
+
+<table class="w-full bg-white border border-gray-200 rounded-xl text-sm">
+    <thead class="border-b bg-gray-50">
+        <tr>
+            <th class="text-left p-3">Job Title</th>
+            <th class="text-left p-3">Company</th>
+            <th class="text-left p-3">Status</th>
+            <th class="text-left p-3">Created</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for app in applications %}
+        <tr onclick="window.location='/applications/{{ app._id }}'" class="cursor-pointer hover:bg-gray-50 border-b">
+            <td class="p-3">{{ app.job_title or "—" }}</td>
+            <td class="p-3">{{ app.company_name or "—" }}</td>
+            <td class="p-3 capitalize">{{ app.status }}</td>
+            <td class="p-3">
+                {{ app.created_at.strftime('%b %d, %Y') }}
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="4" class="p-6 text-center text-gray-500">
+                No applications yet
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% include "applications/modal.html" %}
+{% endblock %}

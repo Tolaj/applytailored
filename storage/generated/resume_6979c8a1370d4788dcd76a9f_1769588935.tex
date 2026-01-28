@@ -1,0 +1,171 @@
+%-------------------------
+% Resume in LaTeX
+% Author: Your Name
+% License: MIT
+%------------------------
+
+\documentclass[letterpaper,11pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Adjust margins
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1in}
+\addtolength{\topmargin}{-.5in}
+\addtolength{\textheight}{1.0in}
+
+\urlstyle{same}
+
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+% Sections formatting
+\titleformat{\section}{
+  \vspace{-4pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule \vspace{-5pt}]
+
+%-------------------------
+% Custom commands
+\newcommand{\resumeItem}[1]{
+  \item\small{
+    {#1 \vspace{-2pt}}
+  }
+}
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-1pt}\item
+    \begin{tabular*}{0.97\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & #2 \\
+      \textit{\small#3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-5pt}
+}
+
+\newcommand{\resumeSubItem}[1]{\resumeItem{#1}\vspace{-4pt}}
+
+\renewcommand{\labelitemii}{$\circ$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=*]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+
+%-------------------------------------------
+%%%%%%  CV STARTS HERE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+%----------HEADING-----------------
+\begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}}r}
+  \textbf{\href{http://yourwebsite.com/}{\Large John Doe}} & Email: \href{mailto:john.doe@email.com}{john.doe@email.com}\\
+  \href{http://yourwebsite.com/}{http://www.yourwebsite.com} & Mobile: +1-123-456-7890 \\
+\end{tabular*}
+
+%-----------SUMMARY-----------------
+\section{Professional Summary}
+  Backend software engineer with 8+ years of professional experience specializing in Python development, AWS cloud infrastructure, and IoT edge systems. Expertise in building scalable, high-performance backend systems for mission-critical applications and complex device integrations. Proven track record of implementing Infrastructure as Code with Terraform and delivering production-ready solutions in Linux environments.
+
+%-----------EXPERIENCE-----------------
+\section{Experience}
+  \resumeSubHeadingListStart
+
+    \resumeSubheading
+      {Senior Software Engineer}{Jan 2021 -- Present}
+      {Tech Company Inc.}{San Francisco, CA}
+      \resumeItemListStart
+        \resumeItem{Architected and implemented Python-based backend services serving 1M+ users, improving system reliability by 40\% through robust error handling and monitoring}
+        \resumeItem{Built and managed AWS cloud infrastructure using Terraform Infrastructure as Code, automating deployment pipelines and reducing provisioning time by 60\%}
+        \resumeItem{Developed backend systems for IoT edge devices and physical hardware integration, optimizing performance for resource-constrained environments}
+        \resumeItem{Implemented OAuth identity solutions and secure authentication mechanisms for both cloud platforms and edge devices}
+        \resumeItem{Established comprehensive logging and monitoring systems for debugging complex distributed systems across Linux-based production environments}
+        \resumeItem{Led code quality initiatives and mentored team of 5 developers on backend architecture best practices and documentation standards}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {Software Engineer}{Jun 2019 -- Dec 2020}
+      {Startup XYZ}{Remote}
+      \resumeItemListStart
+        \resumeItem{Designed and deployed scalable backend processing algorithms for real-time data analysis, handling 10K+ concurrent device connections}
+        \resumeItem{Built robust communication services facilitating data transfer between field devices, cloud infrastructure, and client applications using Python and RESTful APIs}
+        \resumeItem{Optimized core processing algorithms and implemented denoising software, improving data accuracy by 35\% and reducing processing latency}
+        \resumeItem{Developed comprehensive testing frameworks and documentation following software lifecycle best practices for production deployment}
+        \resumeItem{Collaborated with hardware and product teams to translate complex device requirements into scalable backend solutions}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {Backend Developer}{May 2018 -- May 2019}
+      {Software Solutions Ltd.}{New York, NY}
+      \resumeItemListStart
+        \resumeItem{Developed Python-based backend services and APIs for web applications with focus on performance optimization and scalability}
+        \resumeItem{Worked extensively with Linux command line environments for system administration, deployment automation, and troubleshooting}
+        \resumeItem{Debugged and resolved complex production issues in distributed systems, reducing critical system downtime by 30\%}
+        \resumeItem{Created technical documentation and supported knowledge transfer initiatives for backend systems and deployment procedures}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {Junior Software Engineer}{Sep 2016 -- Apr 2018}
+      {IoT Solutions Corp.}{Berkeley, CA}
+      \resumeItemListStart
+        \resumeItem{Developed software for IoT devices and embedded systems, gaining experience with hardware-software interaction and resource constraints}
+        \resumeItem{Contributed to C/C++ firmware development for edge computing devices and real-world physical hardware integration}
+        \resumeItem{Supported debugging efforts for complex device communication protocols and data processing pipelines}
+      \resumeItemListEnd
+
+  \resumeSubHeadingListEnd
+
+%-----------EDUCATION-----------------
+\section{Education}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {University of California, Berkeley}{Berkeley, CA}
+      {Bachelor of Science in Computer Science; GPA: 3.8}{Sep 2014 -- May 2018}
+  \resumeSubHeadingListEnd
+
+%-----------SKILLS-----------------
+\section{Technical Skills}
+  \resumeSubHeadingListStart
+    \resumeSubItem{Programming Languages: Python (Expert), C/C++, JavaScript, TypeScript, SQL, Bash}
+    \resumeSubItem{Cloud \& Infrastructure: AWS, Terraform Infrastructure as Code, Docker, Kubernetes, Linux Systems}
+    \resumeSubItem{Backend Technologies: Flask, Django, RESTful APIs, Microservices, OAuth, PostgreSQL, MongoDB, Redis}
+    \resumeSubItem{IoT \& Embedded: IoT edge environments, Hardware-software integration, Device communication protocols, Real-time processing}
+    \resumeSubItem{Tools \& Practices: Git, CI/CD pipelines, System debugging, Performance optimization, Technical documentation}
+  \resumeSubHeadingListEnd
+
+%-----------PROJECTS-----------------
+\section{Notable Projects}
+  \resumeSubHeadingListStart
+    \resumeSubItem{IoT Device Management Platform}
+      {Built Python-based backend platform managing 5K+ IoT devices with real-time data processing, AWS cloud infrastructure, and Terraform deployment automation}
+    \resumeSubItem{Medical Device Data Pipeline}
+      {Developed secure, scalable backend services for processing sensitive device data with comprehensive logging and monitoring for regulatory compliance}
+    \resumeSubItem{Edge Computing Optimization}
+      {Implemented core processing algorithms for resource-constrained edge devices, achieving 40\% performance improvement through algorithm optimization and C++ integration}
+  \resumeSubHeadingListEnd
+
+%-----------CERTIFICATIONS-----------------
+\section{Certifications}
+  \resumeSubHeadingListStart
+    \resumeSubItem{AWS Certified Solutions Architect -- Associate (2022)}
+    \resumeSubItem{AWS Certified Developer -- Associate (2021)}
+    \resumeSubItem{Terraform Associate Certification (2021)}
+  \resumeSubHeadingListEnd
+
+%-------------------------------------------
+\end{document}
