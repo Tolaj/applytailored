@@ -1,4 +1,3 @@
-# models/generated_asset.py
 from datetime import datetime
 from bson import ObjectId
 
@@ -16,10 +15,10 @@ def generated_asset_model(
 ):
     """Factory function to create a new GeneratedAsset instance"""
     return {
-        "_id": str(ObjectId()),
+        "_id": ObjectId(),  # ← Changed from str(ObjectId())
         "job_application_id": job_application_id,
         "user_id": user_id,
-        "type": asset_type,  # resume / cover_letter / cold_email / followup / question_answer
+        "type": asset_type,
         "title": title,
         "content_text": content_text,
         "pdf_path": pdf_path,

@@ -26,6 +26,8 @@ class AIController:
         """
         # Get application - handle both string and ObjectId
         try:
+
+            application_id = ObjectId(application_id)
             # Try as string first (how it's stored from model)
             application = db.applications.find_one(
                 {"_id": application_id, "user_id": user_id}
@@ -47,7 +49,7 @@ class AIController:
         try:
             # Update status to processing - use the _id as it is stored
             db.applications.update_one(
-                {"_id": application["_id"]},
+                {"_id": ObjectId(application["_id"])},
                 {
                     "$set": {
                         "status": "processing",
@@ -129,7 +131,7 @@ class AIController:
 
             # Step 6: Update application with results - use the _id as stored
             db.applications.update_one(
-                {"_id": application["_id"]},
+                {"_id": ObjectId(application["_id"])},
                 {
                     "$set": {
                         "status": "completed",
@@ -154,7 +156,7 @@ class AIController:
         except Exception as e:
             # Update status to failed - use the _id as stored
             db.applications.update_one(
-                {"_id": application["_id"]},
+                {"_id": ObjectId(application["_id"])},
                 {
                     "$set": {
                         "status": "failed",
@@ -184,6 +186,7 @@ class AIController:
         """Generate a cover letter for a job application"""
         try:
             # Get application - handle both string and ObjectId
+            application_id = ObjectId(application_id)
             try:
                 application = db.applications.find_one(
                     {"_id": application_id, "user_id": user_id}

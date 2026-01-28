@@ -1,5 +1,10 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
+__pycache__/*
+__pycache__
+*/__pycache__
+venv/
+venv
 *.py[cod]
 *$py.class
 
@@ -60,5 +65,3 @@ Thumbs.db
 .dmypy.json
 dmypy.json
 .env
-
-storage/generated/

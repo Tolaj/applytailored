@@ -49,9 +49,17 @@ def create_application():
 
 def application_detail(app_id):
     """View detailed application with generated assets"""
-    app = db.applications.find_one(
-        {"_id": ObjectId(app_id), "user_id": g.user["user_id"]}
-    )
+    # Try to find by string ID first, then ObjectId
+    try:
+        app = db.applications.find_one({"_id": app_id, "user_id": g.user["user_id"]})
+
+        # If not found, try as ObjectId
+        if not app:
+            app = db.applications.find_one(
+                {"_id": ObjectId(app_id), "user_id": g.user["user_id"]}
+            )
+    except:
+        app = db.applications.find_one({"_id": app_id, "user_id": g.user["user_id"]})
 
     if not app:
         return redirect("/applications")

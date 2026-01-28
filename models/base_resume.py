@@ -1,4 +1,3 @@
-# models/base_resume.py
 from datetime import datetime
 from bson import ObjectId
 
@@ -6,7 +5,7 @@ from bson import ObjectId
 def base_resume_model(user_id, title, description, latex_template_path):
     """Factory function to create a new BaseResume instance"""
     return {
-        "_id": str(ObjectId()),
+        "_id": ObjectId(),  # ← Changed from str(ObjectId())
         "user_id": user_id,
         "title": title,
         "description": description,

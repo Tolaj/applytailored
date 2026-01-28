@@ -1,4 +1,3 @@
-# models/job_application_updated.py
 from datetime import datetime
 from bson import ObjectId
 
@@ -8,12 +7,12 @@ def job_application_model(
 ):
     """Factory function to create a new JobApplication instance"""
     return {
-        "_id": str(ObjectId()),
+        "_id": ObjectId(),  # ← Changed from str(ObjectId())
         "user_id": user_id,
         "job_description": job_description,
         "company_name": company_name,
         "position_title": position_title,
-        "status": "draft",  # draft / processing / completed / failed
+        "status": "draft",
         "base_resume_id": None,
         "generated_resume_id": None,
         "ai_analysis": None,

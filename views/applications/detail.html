@@ -107,10 +107,12 @@
                     {% endif %}
 
                     {% if asset.type == 'cover_letter' %}
-                    <button onclick="viewCoverLetter('{{ asset.content_text|e }}')"
+                    {% if asset.type == 'cover_letter' %}
+                    <button onclick="viewCoverLetter(this)" data-content="{{ asset.content_text|e }}"
                         class="px-3 py-1 border border-gray-300 text-gray-700 rounded text-sm hover:bg-gray-50">
                         View
                     </button>
+                    {% endif %}
                     {% endif %}
                 </div>
             </div>
@@ -201,7 +203,8 @@
             });
     }
 
-    function viewCoverLetter(content) {
+    function viewCoverLetter(button) {
+        const content = button.getAttribute('data-content');
         document.getElementById('coverLetterContent').textContent = content;
         document.getElementById('coverLetterModal').classList.remove('hidden');
     }
