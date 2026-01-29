@@ -3,6 +3,7 @@ from bson.objectid import ObjectId
 from db import db
 from models.job_application import job_application_model
 from controllers.ai_controller import AIController
+import os
 
 
 ai_controller = AIController()
@@ -67,7 +68,7 @@ def application_detail(app_id):
     # Get generated assets for this application
     generated_assets = list(
         db.generated_assets.find(
-            {"job_application_id": app_id, "user_id": g.user["user_id"]}
+            {"job_application_id": str(app["_id"]), "user_id": g.user["user_id"]}
         ).sort("created_at", -1)
     )
 
@@ -141,26 +142,85 @@ def generate_cover_letter(app_id):
 
 
 def download_asset(asset_id):
-    """Download a generated asset (PDF/TEX)"""
+    """Download generated asset (PDF or TEX)"""
     from flask import send_file
 
     asset = db.generated_assets.find_one(
         {"_id": ObjectId(asset_id), "user_id": g.user["user_id"]}
     )
-
     if not asset:
-        return "Asset not found", 404
+        return "Not found", 404
 
-    file_path = asset.get("pdf_path") or asset.get("tex_path")
+    file_type = request.args.get("type", "pdf")
+
+    if file_type == "tex":
+        file_path = asset.get("tex_path")
+        ext = "tex"
+    else:
+        file_path = asset.get("pdf_path")
+        ext = "pdf"
 
     if not file_path:
-        return "No file available", 404
+        return "File not available", 404
 
-    try:
-        return send_file(
-            file_path,
-            as_attachment=True,
-            download_name=f"{asset['title']}.{'pdf' if asset.get('pdf_path') else 'tex'}",
+    if not os.path.exists(file_path):
+        return "File not found on disk", 404
+
+    return send_file(
+        file_path, as_attachment=True, download_name=f"{asset['title']}.{ext}"
+    )
+
+
+def delete_asset(asset_id):
+    """Delete a single generated asset"""
+    asset = db.generated_assets.find_one(
+        {"_id": ObjectId(asset_id), "user_id": g.user["user_id"]}
+    )
+    if not asset:
+        return jsonify({"success": False, "error": "Asset not found"}), 404
+
+    # Delete files from disk
+    for file_path in [asset.get("pdf_path"), asset.get("tex_path")]:
+        if file_path and os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except Exception as e:
+                print(f"Error deleting file {file_path}: {e}")
+
+    # Delete from database
+    db.generated_assets.delete_one({"_id": ObjectId(asset_id)})
+    return jsonify({"success": True})
+
+
+def delete_application(app_id):
+    """Delete an application and all its associated assets"""
+    # Find application
+    app = db.applications.find_one(
+        {"_id": ObjectId(app_id), "user_id": g.user["user_id"]}
+    )
+    if not app:
+        return jsonify({"success": False, "error": "Application not found"}), 404
+
+    # Find all assets for this application
+    assets = list(
+        db.generated_assets.find(
+            {"job_application_id": str(app_id), "user_id": g.user["user_id"]}
         )
-    except Exception as e:
-        return f"Error downloading file: {str(e)}", 500
+    )
+
+    # Delete all asset files
+    for asset in assets:
+        for file_path in [asset.get("pdf_path"), asset.get("tex_path")]:
+            if file_path and os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                except Exception as e:
+                    print(f"Error deleting file {file_path}: {e}")
+
+    # Delete all assets from database
+    db.generated_assets.delete_many({"job_application_id": str(app_id)})
+
+    # Delete application from database
+    db.applications.delete_one({"_id": ObjectId(app_id)})
+
+    return jsonify({"success": True})

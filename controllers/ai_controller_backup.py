@@ -1,15 +1,10 @@
-"""
-Enhanced AI Controller with automatic selective regeneration based on saved preferences
-"""
-
 import os
 from datetime import datetime
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 from bson.objectid import ObjectId
 from db import db
 from services.claude_ai_service import ClaudeAIService
 from services.latex_service import LatexService
-from services.latex_parser_service import LatexParserService
 from models.generated_asset import generated_asset_model
 
 
@@ -17,76 +12,28 @@ class AIController:
     def __init__(self):
         self.claude_service = ClaudeAIService()
         self.latex_service = LatexService()
-        self.parser_service = LatexParserService()
-
-    def parse_base_resume(self, resume_id: str, user_id: str) -> Dict[str, Any]:
-        """
-        Parse a base resume into selectable sections
-        """
-        try:
-            resume = db.base_resumes.find_one(
-                {"_id": ObjectId(resume_id), "user_id": user_id}
-            )
-
-            if not resume:
-                return {"success": False, "error": "Resume not found"}
-
-            latex_content = self.latex_service.read_base_resume(
-                resume["latex_template_path"]
-            )
-
-            if not latex_content:
-                return {"success": False, "error": "Could not read resume file"}
-
-            parsed = self.parser_service.parse_resume(latex_content)
-
-            sections_for_ui = []
-            for section in parsed["sections"]:
-                section_info = {
-                    "id": f"{section.section_type}_{section.start_pos}",
-                    "type": section.section_type,
-                    "title": section.title,
-                    "preview": self.parser_service.get_section_preview(section),
-                    "has_subsections": len(section.subsections) > 0,
-                    "subsections": [],
-                }
-
-                for subsection in section.subsections:
-                    subsection_info = {
-                        "id": f"sub_{subsection.start_pos}",
-                        "title": subsection.title,
-                        "lines": subsection.lines,
-                        "line_count": len(subsection.lines),
-                    }
-                    section_info["subsections"].append(subsection_info)
-
-                sections_for_ui.append(section_info)
-
-            return {
-                "success": True,
-                "parsed_structure": parsed,
-                "sections": sections_for_ui,
-                "header": parsed["header"],
-            }
-
-        except Exception as e:
-            return {"success": False, "error": str(e)}
 
     def process_job_application(
         self, application_id: str, user_id: str
     ) -> Dict[str, Any]:
         """
-        Main workflow to process a job application.
-
-        NEW BEHAVIOR: Checks if base resume has section preferences enabled.
-        If enabled, only regenerates selected sections. Otherwise, regenerates entire resume.
+        Main workflow to process a job application:
+        1. Analyze job description
+        2. Get base resume
+        3. Tailor resume with Claude
+        4. Compile to PDF
+        5. Save to database
         """
+        # Get application - handle both string and ObjectId
         try:
+
             application_id = ObjectId(application_id)
+            # Try as string first (how it's stored from model)
             application = db.applications.find_one(
                 {"_id": application_id, "user_id": user_id}
             )
 
+            # If not found, try as ObjectId
             if not application:
                 application = db.applications.find_one(
                     {"_id": ObjectId(application_id), "user_id": user_id}
@@ -100,7 +47,7 @@ class AIController:
             return {"success": False, "error": "Application not found"}
 
         try:
-            # Update status to processing
+            # Update status to processing - use the _id as it is stored
             db.applications.update_one(
                 {"_id": ObjectId(application["_id"])},
                 {
@@ -128,56 +75,10 @@ class AIController:
             if not base_latex_content:
                 raise Exception("Could not read base resume template")
 
-            # Step 3: Check if selective regeneration is enabled
-            section_prefs = base_resume.get("section_preferences", {})
-            selective_enabled = section_prefs.get("enabled", False)
-            selected_sections = section_prefs.get("selected_sections", [])
-
-            if selective_enabled and selected_sections:
-                # USE SELECTIVE REGENERATION
-                print(
-                    f"Using selective regeneration for {len(selected_sections)} sections"
-                )
-
-                # Parse resume
-                parsed = self.parser_service.parse_resume(base_latex_content)
-
-                # Regenerate only selected sections
-                regenerated = {}
-                for section in parsed["sections"]:
-                    section_id = f"{section.section_type}_{section.start_pos}"
-
-                    if section_id in selected_sections:
-                        print(f"Regenerating section: {section.title}")
-                        new_content = self.claude_service.regenerate_section(
-                            section_content=section.content,
-                            section_type=section.section_type,
-                            job_description=application["job_description"],
-                            job_analysis=job_analysis,
-                            context={
-                                "section_title": section.title,
-                                "has_subsections": len(section.subsections) > 0,
-                            },
-                        )
-                        regenerated[section_id] = new_content
-
-                # Rebuild LaTeX with regenerated sections
-                tailored_latex = self.parser_service.rebuild_latex(
-                    original_content=base_latex_content,
-                    parsed_structure=parsed,
-                    selected_sections={s: True for s in selected_sections},
-                    regenerated_sections=regenerated,
-                )
-
-                regeneration_type = "selective"
-
-            else:
-                # USE FULL REGENERATION (original behavior)
-                print("Using full resume regeneration")
-                tailored_latex = self.claude_service.tailor_resume(
-                    base_latex_content, application["job_description"], job_analysis
-                )
-                regeneration_type = "full"
+            # Step 3: Tailor resume with Claude
+            tailored_latex = self.claude_service.tailor_resume(
+                base_latex_content, application["job_description"], job_analysis
+            )
 
             # Step 4: Compile to PDF
             output_filename = (
@@ -188,6 +89,7 @@ class AIController:
             )
 
             if not success:
+                # If compilation fails, fallback to base resume
                 print(f"LaTeX compilation failed: {error}")
                 print("Falling back to base resume...")
 
@@ -198,28 +100,25 @@ class AIController:
                 if not success:
                     raise Exception(f"Even base resume compilation failed: {error}")
 
-                tailored_latex = base_latex_content
+                tailored_latex = base_latex_content  # Use base as fallback
 
             # Step 5: Save generated asset to database
             tex_filename = f"{output_filename}.tex"
             tex_path = f"storage/generated/{tex_filename}"
 
+            # Save the tex file
             with open(tex_path, "w", encoding="utf-8") as f:
                 f.write(tailored_latex)
 
+            # Extract text content for storage
             content_text = self.latex_service.extract_text_from_latex(tailored_latex)
 
-            # Create title based on regeneration type
-            if regeneration_type == "selective":
-                title = f"Tailored Resume (Selective) - {job_analysis.get('position_title', 'Position')}"
-            else:
-                title = f"Tailored Resume - {job_analysis.get('position_title', 'Position')}"
-
+            # Create generated asset record
             asset_data = generated_asset_model(
-                job_application_id=str(application_id),
+                job_application_id=str(application_id),  # Ensure it's a string
                 user_id=user_id,
                 asset_type="resume",
-                title=title,
+                title=f"Tailored Resume - {job_analysis.get('position_title', 'Position')}",
                 content_text=content_text,
                 ai_model="claude-sonnet-4-20250514",
                 pdf_path=pdf_path,
@@ -230,23 +129,20 @@ class AIController:
             result = db.generated_assets.insert_one(asset_data)
             generated_asset_id = str(result.inserted_id)
 
-            # Step 6: Update application with results
-            update_data = {
-                "status": "completed",
-                "company_name": job_analysis.get("company_name"),
-                "position_title": job_analysis.get("position_title"),
-                "base_resume_id": str(base_resume["_id"]),
-                "generated_resume_id": generated_asset_id,
-                "ai_analysis": job_analysis,
-                "updated_at": datetime.utcnow(),
-                "regeneration_type": regeneration_type,  # Track which method was used
-            }
-
-            if regeneration_type == "selective":
-                update_data["regenerated_sections"] = selected_sections
-
+            # Step 6: Update application with results - use the _id as stored
             db.applications.update_one(
-                {"_id": ObjectId(application["_id"])}, {"$set": update_data}
+                {"_id": ObjectId(application["_id"])},
+                {
+                    "$set": {
+                        "status": "completed",
+                        "company_name": job_analysis.get("company_name"),
+                        "position_title": job_analysis.get("position_title"),
+                        "base_resume_id": str(base_resume["_id"]),
+                        "generated_resume_id": generated_asset_id,
+                        "ai_analysis": job_analysis,
+                        "updated_at": datetime.utcnow(),
+                    }
+                },
             )
 
             return {
@@ -255,13 +151,10 @@ class AIController:
                 "pdf_path": pdf_path,
                 "tex_path": tex_path,
                 "job_analysis": job_analysis,
-                "regeneration_type": regeneration_type,
-                "sections_regenerated": (
-                    selected_sections if regeneration_type == "selective" else None
-                ),
             }
 
         except Exception as e:
+            # Update status to failed - use the _id as stored
             db.applications.update_one(
                 {"_id": ObjectId(application["_id"])},
                 {
@@ -276,19 +169,15 @@ class AIController:
 
     def _get_base_resume(self, user_id: str) -> Optional[Dict]:
         """Get the user's base resume, or a default one"""
-        # Try to get user's active base resume
-        base_resume = db.base_resumes.find_one({"user_id": user_id, "is_active": True})
-
-        if base_resume:
-            return base_resume
-
-        # Try any user resume
+        # Try to get user's base resume
         base_resume = db.base_resumes.find_one({"user_id": user_id})
+
         if base_resume:
             return base_resume
 
         # Fallback to default base resume if exists
         default_resume = db.base_resumes.find_one({"user_id": "default"})
+
         return default_resume
 
     def generate_cover_letter(
@@ -296,6 +185,7 @@ class AIController:
     ) -> Dict[str, Any]:
         """Generate a cover letter for a job application"""
         try:
+            # Get application - handle both string and ObjectId
             application_id = ObjectId(application_id)
             try:
                 application = db.applications.find_one(
@@ -313,6 +203,7 @@ class AIController:
             if not application:
                 return {"success": False, "error": "Application not found"}
 
+            # Get the generated resume for context
             resume_text = ""
             if application.get("generated_resume_id"):
                 try:
@@ -331,14 +222,16 @@ class AIController:
                 if generated_resume:
                     resume_text = generated_resume.get("content_text", "")
 
+            # Generate cover letter
             cover_letter_text = self.claude_service.generate_cover_letter(
                 resume_text,
                 application["job_description"],
                 application.get("ai_analysis"),
             )
 
+            # Save as generated asset
             asset_data = generated_asset_model(
-                job_application_id=str(application_id),
+                job_application_id=str(application_id),  # Ensure it's a string
                 user_id=user_id,
                 asset_type="cover_letter",
                 title=f"Cover Letter - {application.get('position_title', 'Position')}",

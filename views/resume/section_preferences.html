@@ -1,0 +1,366 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <a href="/profile" class="text-gray-600 hover:text-black mb-2 inline-block">
+                ← Back to Profile
+            </a>
+            <h1 class="text-2xl font-semibold">Section Preferences</h1>
+            <p class="text-gray-600 mt-1">
+                Choose which sections to automatically regenerate for new job applications
+            </p>
+        </div>
+    </div>
+
+    <!-- Info Card -->
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+        <div class="flex gap-3">
+            <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor"
+                viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div>
+                <p class="text-sm text-blue-800 font-medium mb-1">How this works:</p>
+                <ul class="text-sm text-blue-700 space-y-1">
+                    <li>• Select which sections you want to be updated for each job application</li>
+                    <li>• When you create a new application, only these sections will be regenerated</li>
+                    <li>• Other sections will stay exactly as they are in your base resume</li>
+                    <li>• This gives you precise control and faster processing</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Left: Controls -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 sticky top-6">
+                <h2 class="text-lg font-semibold mb-4">Controls</h2>
+
+                <!-- Enable/Disable Toggle -->
+                <div class="mb-6">
+                    <label class="flex items-center justify-between cursor-pointer">
+                        <span class="text-sm font-medium text-gray-700">Enable Selective Regeneration</span>
+                        <div class="relative">
+                            <input type="checkbox" id="enableSelective" onchange="toggleSelective(this.checked)"
+                                class="sr-only peer">
+                            <div
+                                class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600">
+                            </div>
+                        </div>
+                    </label>
+                    <p class="text-xs text-gray-500 mt-2">
+                        When enabled, new applications will only regenerate selected sections
+                    </p>
+                </div>
+
+                <!-- Status Display -->
+                <div id="statusDisplay" class="hidden mb-6 p-3 bg-green-50 border border-green-200 rounded-md">
+                    <p class="text-sm text-green-800 font-medium mb-1">
+                        ✓ Selective regeneration enabled
+                    </p>
+                    <p class="text-xs text-green-700">
+                        <span id="sectionCount">0</span> sections will be regenerated
+                    </p>
+                </div>
+
+                <!-- Buttons -->
+                <div class="space-y-3">
+                    <button onclick="loadSections()"
+                        class="w-full px-4 py-2 bg-black text-white rounded-md text-sm hover:bg-gray-800">
+                        Load Resume Sections
+                    </button>
+
+                    <button onclick="selectAllSections()" id="selectAllBtn"
+                        class="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-md text-sm hover:bg-gray-50"
+                        disabled>
+                        Select All Sections
+                    </button>
+
+                    <button onclick="clearAllSections()" id="clearAllBtn"
+                        class="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-md text-sm hover:bg-gray-50"
+                        disabled>
+                        Clear All
+                    </button>
+
+                    <button onclick="savePreferences()" id="saveBtn"
+                        class="w-full px-4 py-2 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled>
+                        Save Preferences
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Resume Sections -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                <h2 class="text-lg font-semibold mb-4">Resume Sections</h2>
+
+                <!-- Loading State -->
+                <div id="sectionsLoading" class="text-center py-12">
+                    <svg class="animate-spin h-8 w-8 text-gray-400 mx-auto mb-3" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                        </circle>
+                        <path class="opacity-75" fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                        </path>
+                    </svg>
+                    <p class="text-gray-600">Click "Load Resume Sections" to view your resume structure</p>
+                </div>
+
+                <!-- Sections Container -->
+                <div id="sectionsContainer" class="space-y-3 hidden">
+                    <!-- Sections will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Success Modal -->
+<div id="successModal" class="fixed inset-0 bg-black/30 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-8 text-center max-w-md">
+        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+        </div>
+        <h3 class="text-lg font-semibold mb-2">Preferences Saved!</h3>
+        <p class="text-gray-600 mb-6">
+            Your section preferences have been saved. New applications will automatically use these settings.
+        </p>
+        <button onclick="closeSuccessModal()"
+            class="px-6 py-2 bg-black text-white rounded-md text-sm hover:bg-gray-800">
+            Got it
+        </button>
+    </div>
+</div>
+
+<script>
+    const resumeId = '{{ resume_id }}';
+    let sectionsData = [];
+    let selectedSections = new Set();
+    let selectiveEnabled = false;
+
+    // Load existing preferences on page load
+    window.addEventListener('DOMContentLoaded', async () => {
+        try {
+            const response = await fetch(`/resume/${resumeId}/preferences/get`);
+            const data = await response.json();
+
+            if (data.success) {
+                const prefs = data.preferences;
+                selectiveEnabled = prefs.enabled || false;
+                selectedSections = new Set(prefs.selected_sections || []);
+
+                document.getElementById('enableSelective').checked = selectiveEnabled;
+                updateStatusDisplay();
+
+                // If sections were previously loaded, show them
+                if (prefs.parsed_structure) {
+                    sectionsData = prefs.parsed_structure;
+                    renderSections(sectionsData);
+                    document.getElementById('sectionsLoading').classList.add('hidden');
+                    document.getElementById('sectionsContainer').classList.remove('hidden');
+                    enableButtons();
+                }
+            }
+        } catch (error) {
+            console.error('Error loading preferences:', error);
+        }
+    });
+
+    function toggleSelective(enabled) {
+        selectiveEnabled = enabled;
+        updateStatusDisplay();
+
+        if (enabled && sectionsData.length === 0) {
+            alert('Please load resume sections first');
+            document.getElementById('enableSelective').checked = false;
+            selectiveEnabled = false;
+        }
+    }
+
+    function updateStatusDisplay() {
+        const statusDisplay = document.getElementById('statusDisplay');
+        const sectionCount = document.getElementById('sectionCount');
+
+        if (selectiveEnabled) {
+            statusDisplay.classList.remove('hidden');
+            sectionCount.textContent = selectedSections.size;
+        } else {
+            statusDisplay.classList.add('hidden');
+        }
+
+        // Enable/disable save button
+        document.getElementById('saveBtn').disabled = !selectiveEnabled;
+    }
+
+    async function loadSections() {
+        document.getElementById('sectionsLoading').innerHTML = `
+        <svg class="animate-spin h-8 w-8 text-gray-400 mx-auto mb-3" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <p class="text-gray-600">Loading resume structure...</p>
+    `;
+
+        try {
+            const response = await fetch(`/resume/${resumeId}/sections`);
+            const data = await response.json();
+
+            if (data.success) {
+                sectionsData = data.sections;
+                renderSections(sectionsData);
+                document.getElementById('sectionsLoading').classList.add('hidden');
+                document.getElementById('sectionsContainer').classList.remove('hidden');
+                enableButtons();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (error) {
+            alert('Error loading sections: ' + error.message);
+        }
+    }
+
+    function renderSections(sections) {
+        const container = document.getElementById('sectionsContainer');
+        container.innerHTML = '';
+
+        sections.forEach(section => {
+            const isSelected = selectedSections.has(section.id);
+
+            const sectionDiv = document.createElement('div');
+            sectionDiv.className = `border rounded-lg p-4 transition ${isSelected ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
+                }`;
+
+            sectionDiv.innerHTML = `
+            <div class="flex items-start gap-3">
+                <input 
+                    type="checkbox" 
+                    id="section_${section.id}"
+                    ${isSelected ? 'checked' : ''}
+                    onchange="toggleSection('${section.id}', this.checked)"
+                    class="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500 mt-1"
+                >
+                <div class="flex-1">
+                    <label for="section_${section.id}" class="cursor-pointer">
+                        <div class="flex items-center gap-2 mb-2">
+                            <h3 class="font-medium text-gray-900">${section.title}</h3>
+                            <span class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs uppercase">
+                                ${section.type}
+                            </span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-2">${section.preview}</p>
+                    </label>
+                    
+                    ${section.has_subsections ? `
+                        <details class="mt-3">
+                            <summary class="text-sm text-gray-500 cursor-pointer hover:text-gray-700">
+                                ${section.subsections.length} subsection(s) • Click to expand
+                            </summary>
+                            <div class="mt-2 pl-4 space-y-2">
+                                ${section.subsections.map(sub => `
+                                    <div class="text-sm border-l-2 border-gray-200 pl-3 py-1">
+                                        <p class="font-medium text-gray-700">${sub.title}</p>
+                                        <p class="text-xs text-gray-500">${sub.line_count} bullet point(s)</p>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </details>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+
+            container.appendChild(sectionDiv);
+        });
+    }
+
+    function toggleSection(sectionId, isChecked) {
+        if (isChecked) {
+            selectedSections.add(sectionId);
+        } else {
+            selectedSections.delete(sectionId);
+        }
+
+        updateStatusDisplay();
+        renderSections(sectionsData);
+    }
+
+    function selectAllSections() {
+        sectionsData.forEach(section => {
+            selectedSections.add(section.id);
+            const checkbox = document.getElementById(`section_${section.id}`);
+            if (checkbox) checkbox.checked = true;
+        });
+
+        updateStatusDisplay();
+        renderSections(sectionsData);
+    }
+
+    function clearAllSections() {
+        selectedSections.clear();
+
+        sectionsData.forEach(section => {
+            const checkbox = document.getElementById(`section_${section.id}`);
+            if (checkbox) checkbox.checked = false;
+        });
+
+        updateStatusDisplay();
+        renderSections(sectionsData);
+    }
+
+    function enableButtons() {
+        document.getElementById('selectAllBtn').disabled = false;
+        document.getElementById('clearAllBtn').disabled = false;
+    }
+
+    async function savePreferences() {
+        const saveBtn = document.getElementById('saveBtn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+
+        try {
+            const response = await fetch(`/resume/${resumeId}/preferences`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    enabled: selectiveEnabled,
+                    selected_sections: Array.from(selectedSections)
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                document.getElementById('successModal').classList.remove('hidden');
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (error) {
+            alert('Error saving preferences: ' + error.message);
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save Preferences';
+        }
+    }
+
+    function closeSuccessModal() {
+        document.getElementById('successModal').classList.add('hidden');
+    }
+</script>
+
+{% endblock %}

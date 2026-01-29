@@ -39,3 +39,15 @@ def generate_cover_letter(app_id):
 @require_auth
 def download_asset(asset_id):
     return application_controller.download_asset(asset_id)
+
+
+@application_routes.route("/assets/<asset_id>", methods=["DELETE"])
+@require_auth
+def delete_asset(asset_id):
+    return application_controller.delete_asset(asset_id)
+
+
+@application_routes.route("/applications/<app_id>", methods=["DELETE"])
+@require_auth
+def delete_application(app_id):
+    return application_controller.delete_application(app_id)

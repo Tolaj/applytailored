@@ -10,4 +10,9 @@ def profile():
         {"_id": ObjectId(user_id)}, {"password": 0}  # never send password to view
     )
 
-    return render_template("profile/index.html", user=user)
+    # Get all base resumes for this user
+    base_resumes = list(
+        db.base_resumes.find({"user_id": user_id}).sort("created_at", -1)
+    )
+
+    return render_template("profile/index.html", user=user, base_resumes=base_resumes)

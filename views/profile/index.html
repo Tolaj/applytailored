@@ -1,11 +1,12 @@
 {% extends "layouts/dashboard.html" %}
 
 {% block content %}
-<div class="max-w-3xl">
+<div class="max-w-4xl">
 
     <h1 class="text-2xl font-semibold mb-6">Profile</h1>
 
-    <div class="bg-white border border-gray-200 rounded-xl shadow-sm divide-y">
+    <!-- User Information -->
+    <div class="bg-white border border-gray-200 rounded-xl shadow-sm divide-y mb-6">
 
         <!-- Name -->
         <div class="px-6 py-4">
@@ -41,5 +42,295 @@
 
     </div>
 
+    <!-- Base Resumes Section -->
+    <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold">Base Resume Templates</h2>
+            <button onclick="openUploadModal()"
+                class="px-4 py-2 bg-black text-white rounded-md text-sm hover:bg-gray-800">
+                Upload New Template
+            </button>
+        </div>
+
+        <p class="text-sm text-gray-600 mb-4">
+            Upload your resume in LaTeX format. Configure which sections to regenerate automatically for each job.
+        </p>
+
+        {% if base_resumes %}
+        <div class="space-y-3">
+            {% for resume in base_resumes %}
+            <div class="p-4 border border-gray-200 rounded-lg 
+                        {% if resume.is_active %}bg-green-50 border-green-200{% else %}hover:bg-gray-50{% endif %}">
+
+                <!-- Resume Header -->
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3">
+                            <h3 class="font-medium text-gray-900">{{ resume.title }}</h3>
+                            {% if resume.is_active %}
+                            <span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
+                                Active
+                            </span>
+                            {% endif %}
+                            {% if resume.class_file %}
+                            <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                                + Class File
+                            </span>
+                            {% endif %}
+
+                            <!-- NEW: Selective Regeneration Status Badge -->
+                            {% if resume.section_preferences and resume.section_preferences.enabled %}
+                            <span
+                                class="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                        clip-rule="evenodd"></path>
+                                </svg>
+                                Selective ({{ resume.section_preferences.selected_sections|length }} sections)
+                            </span>
+                            {% endif %}
+                        </div>
+                        {% if resume.description %}
+                        <p class="text-sm text-gray-600 mt-1">{{ resume.description }}</p>
+                        {% endif %}
+                        <p class="text-xs text-gray-500 mt-1">
+                            Uploaded {{ resume.created_at.strftime('%B %d, %Y') }}
+                            {% if resume.class_file %}
+                            • Includes: {{ resume.class_file }}
+                            {% endif %}
+                        </p>
+                    </div>
+
+                    <!-- Toggle Switch -->
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" class="sr-only peer" {% if resume.is_active %}checked{% endif %}
+                            onchange="toggleActiveResume('{{ resume._id }}', this.checked)">
+                        <div
+                            class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600">
+                        </div>
+                        <span class="ml-3 text-sm font-medium text-gray-900">Active</span>
+                    </label>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-wrap gap-2">
+                    <!-- NEW: Section Preferences Button -->
+                    <a href="/resume/{{ resume._id }}/preferences"
+                        class="px-3 py-1.5 bg-purple-600 text-white rounded-md text-sm hover:bg-purple-700 flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4">
+                            </path>
+                        </svg>
+                        Section Preferences
+                    </a>
+
+                    <a href="/base-resumes/{{ resume._id }}/download"
+                        class="px-3 py-1.5 border border-gray-300 text-gray-700 rounded-md text-sm hover:bg-gray-50">
+                        Download .tex
+                    </a>
+
+                    {% if resume.class_file %}
+                    <a href="/base-resumes/{{ resume._id }}/download-class"
+                        class="px-3 py-1.5 border border-blue-300 text-blue-700 rounded-md text-sm hover:bg-blue-50">
+                        Download .cls
+                    </a>
+                    {% endif %}
+
+                    {% if not resume.is_active %}
+                    <button onclick="confirmDeleteResume('{{ resume._id }}', '{{ resume.title }}')"
+                        class="px-3 py-1.5 border border-red-300 text-red-700 rounded-md text-sm hover:bg-red-50">
+                        Delete
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-8 text-gray-500">
+            <p>No base resume templates uploaded yet.</p>
+            <p class="text-sm mt-2">Upload a LaTeX template to get started.</p>
+        </div>
+        {% endif %}
+    </div>
+
 </div>
+
+<!-- Upload Modal -->
+<div id="uploadModal" class="fixed inset-0 bg-black/30 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-semibold">Upload Base Resume Template</h2>
+            <button onclick="closeUploadModal()" class="text-gray-500 hover:text-gray-700">
+                ✕
+            </button>
+        </div>
+
+        <form method="POST" action="/base-resumes" enctype="multipart/form-data" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Template Title
+                </label>
+                <input type="text" name="title" required placeholder="e.g., Professional Resume 2024"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:outline-none">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Description (optional)
+                </label>
+                <textarea name="description" rows="2" placeholder="Brief description of this template"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:outline-none"></textarea>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    LaTeX File (.tex) *
+                </label>
+                <input type="file" name="latex" accept=".tex" required
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:outline-none">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Class File (.cls) - Optional
+                </label>
+                <input type="file" name="class_file" accept=".cls"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:outline-none">
+                <p class="text-xs text-gray-500 mt-1">
+                    Upload if your resume uses a custom class (e.g., lmdEN.cls, moderncv.cls)
+                </p>
+            </div>
+
+            <div class="bg-blue-50 border border-blue-200 rounded-md p-3">
+                <p class="text-xs text-blue-800">
+                    <strong>Tip:</strong> After uploading, click "Section Preferences" to choose which sections to
+                    auto-regenerate for each job.
+                </p>
+            </div>
+
+            <div class="flex justify-end gap-3 mt-6">
+                <button type="button" onclick="closeUploadModal()"
+                    class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md text-sm hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 bg-black text-white rounded-md text-sm hover:bg-gray-800">
+                    Upload Template
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div id="confirmModal" class="fixed inset-0 bg-black/30 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl w-full max-w-md p-6">
+        <h2 class="text-lg font-semibold mb-4">Confirm Delete</h2>
+        <p id="confirmMessage" class="text-gray-700 mb-6"></p>
+        <div class="flex justify-end gap-3">
+            <button onclick="closeConfirmModal()"
+                class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md text-sm hover:bg-gray-50">
+                Cancel
+            </button>
+            <button id="confirmButton" onclick="executeDelete()"
+                class="px-4 py-2 bg-red-600 text-white rounded-md text-sm hover:bg-red-700">
+                Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div id="loadingModal" class="fixed inset-0 bg-black/30 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-8 text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
+        <p class="text-gray-700">Updating...</p>
+    </div>
+</div>
+
+<script>
+    let deleteResumeId = null;
+
+    function openUploadModal() {
+        document.getElementById('uploadModal').classList.remove('hidden');
+    }
+
+    function closeUploadModal() {
+        document.getElementById('uploadModal').classList.add('hidden');
+    }
+
+    function toggleActiveResume(resumeId, isChecked) {
+        document.getElementById('loadingModal').classList.remove('hidden');
+
+        if (isChecked) {
+            fetch('/base-resumes/' + resumeId + '/activate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('loadingModal').classList.add('hidden');
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error: ' + (data.error || 'Failed to activate resume'));
+                        location.reload();
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('loadingModal').classList.add('hidden');
+                    alert('Error: ' + error.message);
+                    location.reload();
+                });
+        } else {
+            document.getElementById('loadingModal').classList.add('hidden');
+            alert('You must have at least one active resume. Please activate another resume first.');
+            location.reload();
+        }
+    }
+
+    function confirmDeleteResume(resumeId, resumeTitle) {
+        deleteResumeId = resumeId;
+        document.getElementById('confirmMessage').textContent =
+            `Are you sure you want to delete "${resumeTitle}"?`;
+        document.getElementById('confirmModal').classList.remove('hidden');
+    }
+
+    function closeConfirmModal() {
+        document.getElementById('confirmModal').classList.add('hidden');
+        deleteResumeId = null;
+    }
+
+    function executeDelete() {
+        if (!deleteResumeId) return;
+
+        document.getElementById('confirmModal').classList.add('hidden');
+        document.getElementById('loadingModal').classList.remove('hidden');
+
+        fetch('/base-resumes/' + deleteResumeId, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loadingModal').classList.add('hidden');
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to delete resume'));
+                }
+            })
+            .catch(error => {
+                document.getElementById('loadingModal').classList.add('hidden');
+                alert('Error: ' + error.message);
+            });
+    }
+</script>
+
 {% endblock %}

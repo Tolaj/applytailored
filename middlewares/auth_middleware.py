@@ -2,6 +2,7 @@ import jwt
 from functools import wraps
 from flask import request, redirect, g
 from config import Config
+from flask import jsonify
 
 
 def require_auth(f):
