@@ -1,67 +1,75 @@
-# Byte-compiled / optimized / DLL files
+# =========================
+# Node / JS
+# =========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+dist/
+build/
+.next/
+.cache/
+coverage/
+
+# =========================
+# Python
+# =========================
 __pycache__/
-__pycache__/*
-__pycache__
-*/__pycache__
-venv/
-venv
 *.py[cod]
 *$py.class
 
 # Virtual environments
-.env
-.venv
-env/
 venv/
+.venv/
 ENV/
+env/
 env.bak/
 venv.bak/
 
-# Distribution / packaging
+# Python build artifacts
 build/
 dist/
 *.egg-info/
 .eggs/
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
+# =========================
+# Environment variables
+# =========================
+.env
+.env.*
+*.env
 
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-pytest_cache/
-nosetests.xml
-coverage.xml
+# =========================
+# Logs
+# =========================
+*.log
 
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# IDEs / Editors
-.vscode/
+# =========================
+# OS / Editor junk
+# =========================
+.DS_Store
+Thumbs.db
 .idea/
+.vscode/
 *.swp
 *.swo
 
-# OS files
-.DS_Store
-Thumbs.db
+# =========================
+# Testing / Coverage
+# =========================
+.coverage
+.coverage.*
+htmlcov/
 
-# Logs
-*.log
-
-# SQLite databases
+# =========================
+# Misc
+# =========================
 *.sqlite3
 
-# PyCharm
-.idea/
-
-# mypy / type checking
-.mypy_cache/
-.dmypy.json
-dmypy.json
-.env
+# =========================
+# LaTeX / PDF
+# =========================
+*.tex
+*.pdf
