@@ -1,5 +1,6 @@
 """
-Enhanced Claude AI Service with selective section regeneration
+Enhanced Claude AI Service with hierarchical regeneration methods
+Supports: Section, Subsection, and Bullet Point level regeneration
 """
 
 import os
@@ -14,9 +15,7 @@ class ClaudeAIService:
         self.model = "claude-sonnet-4-20250514"
 
     def analyze_job_description(self, job_description: str) -> Dict[str, Any]:
-        """
-        Analyze job description to extract key information
-        """
+        """Analyze job description to extract key information"""
         prompt = f"""Analyze the following job description and extract structured information.
 Return your response in JSON format with these fields:
 - company_name: string
@@ -40,9 +39,7 @@ Return only valid JSON, no markdown or additional text."""
 
         response_text = message.content[0].text
 
-        # Try to parse JSON from response
         try:
-            # Remove markdown code blocks if present
             if "```json" in response_text:
                 response_text = (
                     response_text.split("```json")[1].split("```")[0].strip()
@@ -52,7 +49,6 @@ Return only valid JSON, no markdown or additional text."""
 
             return json.loads(response_text)
         except json.JSONDecodeError:
-            # Fallback if JSON parsing fails
             return {
                 "company_name": "Unknown",
                 "position_title": "Unknown",
@@ -63,6 +59,135 @@ Return only valid JSON, no markdown or additional text."""
                 "keywords": [],
             }
 
+    def regenerate_bullet_point(
+        self,
+        bullet_content: str,
+        job_description: str,
+        job_analysis: Dict[str, Any],
+        context: Dict[str, Any],
+    ) -> str:
+        """
+        Regenerate a single bullet point to match job requirements
+
+        Args:
+            bullet_content: Original bullet point text
+            job_description: Target job description
+            job_analysis: Analyzed job information
+            context: Additional context (section, subsection names)
+
+        Returns:
+            LaTeX code for regenerated bullet point
+        """
+        prompt = f"""You are an expert resume writer. Optimize this single bullet point to better match the job description.
+
+Job Context:
+- Company: {job_analysis.get('company_name', 'Unknown')}
+- Position: {job_analysis.get('position_title', 'Unknown')}
+- Required Skills: {', '.join(job_analysis.get('required_skills', [])[:10])}
+- Key ATS Keywords: {', '.join(job_analysis.get('keywords', [])[:15])}
+
+Resume Context:
+- Section: {context.get('section', 'Unknown')}
+- Subsection: {context.get('subsection', 'Unknown')}
+
+Original Bullet Point:
+{bullet_content}
+
+CRITICAL GUIDELINES:
+1. Keep the same achievement/responsibility - DO NOT invent new ones
+2. Emphasize aspects that match the job requirements
+3. Include 1-2 ATS keywords naturally if relevant
+4. Quantify impact if numbers already exist (don't add fake numbers)
+5. Return ONLY the LaTeX code for this bullet point
+6. Use \\resumeItemNH{{...}} format
+7. Keep it concise (1-2 lines maximum)
+
+Return the optimized bullet point in LaTeX:"""
+
+        message = self.client.messages.create(
+            model=self.model,
+            max_tokens=500,
+            messages=[{"role": "user", "content": prompt}],
+        )
+
+        result = message.content[0].text
+
+        # Clean up response
+        if "```latex" in result:
+            result = result.split("```latex")[1].split("```")[0].strip()
+        elif "```" in result:
+            result = result.split("```")[1].split("```")[0].strip()
+
+        return result
+
+    def regenerate_subsection(
+        self,
+        subsection_latex: str,
+        section_type: str,
+        job_description: str,
+        job_analysis: Dict[str, Any],
+        context: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """
+        Regenerate an entire subsection (e.g., a job entry)
+
+        Args:
+            subsection_latex: Original LaTeX for the subsection
+            section_type: Type of section (experience, education, etc.)
+            job_description: Target job description
+            job_analysis: Analyzed job information
+            context: Additional context
+
+        Returns:
+            Regenerated LaTeX for the subsection
+        """
+        context = context or {}
+
+        prompt = f"""You are an expert resume writer. Optimize this resume subsection to better match the job description.
+
+Job Context:
+- Company: {job_analysis.get('company_name', 'Unknown')}
+- Position: {job_analysis.get('position_title', 'Unknown')}
+- Required Skills: {', '.join(job_analysis.get('required_skills', [])[:10])}
+- Key Responsibilities: {', '.join(job_analysis.get('key_responsibilities', [])[:5])}
+- ATS Keywords: {', '.join(job_analysis.get('keywords', [])[:15])}
+
+Section Type: {section_type.upper()}
+Subsection: {context.get('subsection_title', 'Unknown')}
+
+Original LaTeX:
+{subsection_latex}
+
+CRITICAL GUIDELINES:
+1. Preserve ALL LaTeX structure and commands EXACTLY
+2. Keep job title, company, dates unchanged
+3. ONLY optimize bullet points to emphasize relevant experience
+4. Include ATS keywords naturally where appropriate
+5. Reorder bullet points to put most relevant first
+6. Quantify achievements if numbers already exist
+7. Maintain professional tone
+8. Return ONLY the LaTeX code, no explanations
+
+Return the optimized subsection in LaTeX:"""
+
+        message = self.client.messages.create(
+            model=self.model,
+            max_tokens=2000,
+            messages=[{"role": "user", "content": prompt}],
+        )
+
+        result = message.content[0].text
+
+        # Clean up response
+        if "```latex" in result:
+            result = result.split("```latex")[1].split("```")[0].strip()
+        elif "```tex" in result:
+            result = result.split("```tex")[1].split("```")[0].strip()
+        elif "```" in result:
+            result = result.split("```")[1].split("```")[0].strip()
+
+        return result
+
     def regenerate_section(
         self,
         section_content: str,
@@ -72,103 +197,30 @@ Return only valid JSON, no markdown or additional text."""
         context: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
-        Regenerate a specific section of the resume based on job description
-
-        Args:
-            section_content: The original LaTeX content of the section
-            section_type: Type of section (experience, education, skills, etc.)
-            job_description: Target job description
-            job_analysis: Analyzed job information
-            context: Additional context about the section
-
-        Returns:
-            Regenerated LaTeX content for the section
+        Regenerate an entire section (kept for compatibility)
         """
         context = context or {}
 
-        # Build context information
-        analysis_text = f"""
-Job Analysis:
+        prompt = f"""You are an expert resume writer. Optimize this {section_type.upper()} section to match the job description.
+
+Job Context:
 - Company: {job_analysis.get('company_name', 'Unknown')}
 - Position: {job_analysis.get('position_title', 'Unknown')}
 - Required Skills: {', '.join(job_analysis.get('required_skills', [])[:10])}
-- Key Responsibilities: {', '.join(job_analysis.get('key_responsibilities', [])[:5])}
 - ATS Keywords: {', '.join(job_analysis.get('keywords', [])[:15])}
-"""
 
-        # Section-specific instructions
-        section_instructions = {
-            "experience": """
-For the EXPERIENCE section:
-- Reorder bullet points to highlight most relevant achievements first
-- Emphasize projects and responsibilities that match the job requirements
-- Add quantifiable metrics where they exist
-- Include ATS keywords naturally in descriptions
-- Focus on transferable skills and relevant technologies
-- Keep the same job titles and companies (don't fabricate)
-""",
-            "skills": """
-For the SKILLS section:
-- Prioritize skills mentioned in the job description
-- Group related skills together
-- Ensure all required skills are visible if they exist
-- Include ATS keywords for technologies mentioned
-- Keep the structure clear and scannable
-""",
-            "education": """
-For the EDUCATION section:
-- Highlight relevant coursework if it matches job requirements
-- Emphasize GPA if strong and relevant
-- Include relevant academic projects
-- Keep the basic facts unchanged
-""",
-            "projects": """
-For the PROJECTS section:
-- Prioritize projects using technologies mentioned in job description
-- Emphasize outcomes and impact
-- Include relevant technical details
-- Highlight teamwork or leadership if relevant
-""",
-            "summary": """
-For the SUMMARY/PROFILE section:
-- Tailor the summary to highlight experience relevant to this role
-- Include keywords from the job description
-- Emphasize the most relevant qualifications
-- Keep it concise (2-4 lines)
-""",
-        }
-
-        instructions = section_instructions.get(
-            section_type,
-            """
-Optimize this section to be more relevant to the job description.
-Emphasize relevant content and include appropriate ATS keywords.
-""",
-        )
-
-        prompt = f"""You are an expert resume writer. Your task is to regenerate ONLY the {section_type.upper()} section of a resume to better match the job description below.
-
-{analysis_text}
-
-Job Description:
-{job_description}
-
-CRITICAL GUIDELINES:
-1. Preserve ALL LaTeX formatting, commands, and structure EXACTLY
-2. Keep the same LaTeX commands (\section, \resumeSubheading, \resumeItem, etc.)
-3. Do NOT change dates, company names, job titles, or factual information
-4. ONLY modify bullet points and descriptions to emphasize relevant experience
-5. Include ATS keywords naturally where appropriate
-6. Maintain professional tone and formatting
-7. Ensure all LaTeX syntax is valid and compilable
-8. Return ONLY the LaTeX code for this section, starting with \section{{{context.get('section_title', section_type)}}}
-
-{instructions}
-
-Original {section_type.upper()} Section (LaTeX):
+Original {section_type.upper()} Section:
 {section_content}
 
-Return the optimized {section_type.upper()} section in valid LaTeX:"""
+CRITICAL GUIDELINES:
+1. Preserve ALL LaTeX formatting and structure
+2. Maintain professional tone
+3. Include ATS keywords naturally
+4. Emphasize relevant experiences
+5. Keep dates and factual information unchanged
+6. Return ONLY LaTeX code
+
+Return the optimized section:"""
 
         message = self.client.messages.create(
             model=self.model,
@@ -176,23 +228,14 @@ Return the optimized {section_type.upper()} section in valid LaTeX:"""
             messages=[{"role": "user", "content": prompt}],
         )
 
-        regenerated_content = message.content[0].text
+        result = message.content[0].text
 
-        # Clean up response - remove markdown code blocks if present
-        if "```latex" in regenerated_content:
-            regenerated_content = (
-                regenerated_content.split("```latex")[1].split("```")[0].strip()
-            )
-        elif "```tex" in regenerated_content:
-            regenerated_content = (
-                regenerated_content.split("```tex")[1].split("```")[0].strip()
-            )
-        elif "```" in regenerated_content:
-            regenerated_content = (
-                regenerated_content.split("```")[1].split("```")[0].strip()
-            )
+        if "```latex" in result:
+            result = result.split("```latex")[1].split("```")[0].strip()
+        elif "```" in result:
+            result = result.split("```")[1].split("```")[0].strip()
 
-        return regenerated_content
+        return result
 
     def tailor_resume(
         self,
@@ -200,9 +243,7 @@ Return the optimized {section_type.upper()} section in valid LaTeX:"""
         job_description: str,
         job_analysis: Optional[Dict[str, Any]] = None,
     ) -> str:
-        """
-        Tailor a LaTeX resume to match a job description
-        """
+        """Full resume regeneration (original method)"""
         analysis_context = ""
         if job_analysis:
             analysis_context = f"""
@@ -214,26 +255,25 @@ Job Analysis:
 - Keywords for ATS: {', '.join(job_analysis.get('keywords', []))}
 """
 
-        prompt = f"""You are an expert resume writer. Your task is to tailor the following LaTeX resume to match the job description below.
+        prompt = f"""You are an expert resume writer. Tailor this LaTeX resume to match the job description.
 
 IMPORTANT GUIDELINES:
-1. Preserve ALL LaTeX formatting, commands, and structure
-2. Keep the same document class and packages
-3. Maintain professional tone and formatting
-4. Optimize for ATS (Applicant Tracking Systems) by including relevant keywords naturally
-5. Emphasize experiences and skills that match the job requirements
-6. Reorder or rephrase bullet points to highlight relevant achievements
-7. Quantify achievements where possible
-8. Ensure all LaTeX syntax is valid and compilable
-9. Do NOT add fictional experience or skills - only optimize what exists
-10. Return ONLY the modified LaTeX code, no explanations or markdown
+1. Preserve ALL LaTeX formatting and structure
+2. Maintain professional tone
+3. Optimize for ATS by including relevant keywords
+4. Emphasize matching experiences and skills
+5. Reorder/rephrase bullet points for relevance
+6. Quantify achievements where possible
+7. Ensure valid LaTeX syntax
+8. DO NOT invent experience or skills
+9. Return ONLY the LaTeX code
 
 {analysis_context}
 
 Job Description:
 {job_description}
 
-Base Resume (LaTeX):
+Base Resume:
 {base_resume_latex}
 
 Return the tailored LaTeX resume:"""
@@ -246,13 +286,11 @@ Return the tailored LaTeX resume:"""
 
         tailored_latex = message.content[0].text
 
-        # Clean up response - remove markdown code blocks if present
         if "```latex" in tailored_latex:
             tailored_latex = tailored_latex.split("```latex")[1].split("```")[0].strip()
         elif "```tex" in tailored_latex:
             tailored_latex = tailored_latex.split("```tex")[1].split("```")[0].strip()
         elif "```" in tailored_latex:
-            # Generic code block
             tailored_latex = tailored_latex.split("```")[1].split("```")[0].strip()
 
         return tailored_latex
@@ -263,9 +301,7 @@ Return the tailored LaTeX resume:"""
         job_description: str,
         job_analysis: Optional[Dict[str, Any]] = None,
     ) -> str:
-        """
-        Generate a tailored cover letter
-        """
+        """Generate a tailored cover letter"""
         analysis_context = ""
         if job_analysis:
             analysis_context = f"""
@@ -274,23 +310,23 @@ Job Details:
 - Position: {job_analysis.get('position_title', 'Unknown')}
 """
 
-        prompt = f"""Write a professional cover letter for the following job application.
+        prompt = f"""Write a professional cover letter for this job application.
 
 {analysis_context}
 
 Job Description:
 {job_description}
 
-Candidate's Resume/Background:
+Candidate's Background:
 {resume_text}
 
 Guidelines:
 1. Keep it concise (3-4 paragraphs)
 2. Show enthusiasm and cultural fit
 3. Highlight 2-3 key achievements relevant to the role
-4. Demonstrate understanding of the company/role
-5. Include a clear call to action
-6. Use professional but warm tone
+4. Demonstrate understanding of company/role
+5. Include clear call to action
+6. Professional but warm tone
 7. Avoid generic phrases
 
 Return only the cover letter text:"""

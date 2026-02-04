@@ -1,5 +1,5 @@
 """
-Routes for managing resume section preferences
+Routes for managing resume section preferences with HTML preview
 """
 
 from flask import Blueprint
@@ -9,6 +9,7 @@ from controllers.section_preferences_controller import (
     load_resume_sections,
     save_section_preferences,
     get_section_preferences,
+    get_resume_html_preview,  # Add this import
 )
 
 section_preferences_routes = Blueprint("section_preferences", __name__)
@@ -42,3 +43,11 @@ def save_preferences(resume_id):
 def get_preferences(resume_id):
     """Get saved section preferences"""
     return get_section_preferences(resume_id)
+
+
+# NEW: HTML Preview endpoint
+@section_preferences_routes.route("/resume/<resume_id>/html-preview", methods=["GET"])
+@require_auth
+def get_html_preview(resume_id):
+    """Get HTML preview of resume for interactive editing"""
+    return get_resume_html_preview(resume_id)

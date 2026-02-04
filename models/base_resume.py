@@ -13,11 +13,31 @@ def base_resume_model(user_id, title, description, latex_template_path):
         "is_active": True,
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow(),
-        # NEW: Section preferences for selective regeneration
+        # UPDATED: Hierarchical section preferences
         "section_preferences": {
-            "enabled": False,  # Whether selective regeneration is enabled
-            "selected_sections": [],  # List of section IDs to regenerate
-            "parsed_structure": None,  # Cached parsed structure
+            "enabled": False,  # Master toggle for selective regeneration
+            "sections": {
+                # Structure: section_name -> subsection -> items
+                # Example:
+                # "experience": {
+                #     "selected": true,  # Is this section selected?
+                #     "subsections": {
+                #         "job_0": {  # NCR Corporation
+                #             "selected": true,
+                #             "items": ["item_0", "item_1"]  # Selected bullet points
+                #         },
+                #         "job_1": {  # Georgia Tech Research Institute
+                #             "selected": false,
+                #             "items": []
+                #         }
+                #     }
+                # },
+                # "education": {
+                #     "selected": false,
+                #     "subsections": {}
+                # }
+            },
+            "parsed_structure": None,  # Cached HTML structure
             "last_parsed": None,  # When structure was last parsed
         },
     }

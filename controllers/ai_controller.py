@@ -1,5 +1,6 @@
 """
-Enhanced AI Controller with automatic selective regeneration based on saved preferences
+Enhanced AI Controller with hierarchical selective regeneration
+Processes: Section -> Subsection -> Item selections
 """
 
 import os
@@ -9,7 +10,7 @@ from bson.objectid import ObjectId
 from db import db
 from services.claude_ai_service import ClaudeAIService
 from services.latex_service import LatexService
-from services.latex_parser_service import LatexParserService
+from services.latex_parser_service import EnhancedLatexParser
 from models.generated_asset import generated_asset_model
 
 
@@ -17,69 +18,16 @@ class AIController:
     def __init__(self):
         self.claude_service = ClaudeAIService()
         self.latex_service = LatexService()
-        self.parser_service = LatexParserService()
-
-    def parse_base_resume(self, resume_id: str, user_id: str) -> Dict[str, Any]:
-        """
-        Parse a base resume into selectable sections
-        """
-        try:
-            resume = db.base_resumes.find_one(
-                {"_id": ObjectId(resume_id), "user_id": user_id}
-            )
-
-            if not resume:
-                return {"success": False, "error": "Resume not found"}
-
-            latex_content = self.latex_service.read_base_resume(
-                resume["latex_template_path"]
-            )
-
-            if not latex_content:
-                return {"success": False, "error": "Could not read resume file"}
-
-            parsed = self.parser_service.parse_resume(latex_content)
-
-            sections_for_ui = []
-            for section in parsed["sections"]:
-                section_info = {
-                    "id": f"{section.section_type}_{section.start_pos}",
-                    "type": section.section_type,
-                    "title": section.title,
-                    "preview": self.parser_service.get_section_preview(section),
-                    "has_subsections": len(section.subsections) > 0,
-                    "subsections": [],
-                }
-
-                for subsection in section.subsections:
-                    subsection_info = {
-                        "id": f"sub_{subsection.start_pos}",
-                        "title": subsection.title,
-                        "lines": subsection.lines,
-                        "line_count": len(subsection.lines),
-                    }
-                    section_info["subsections"].append(subsection_info)
-
-                sections_for_ui.append(section_info)
-
-            return {
-                "success": True,
-                "parsed_structure": parsed,
-                "sections": sections_for_ui,
-                "header": parsed["header"],
-            }
-
-        except Exception as e:
-            return {"success": False, "error": str(e)}
+        self.parser = EnhancedLatexParser()
 
     def process_job_application(
         self, application_id: str, user_id: str
     ) -> Dict[str, Any]:
         """
-        Main workflow to process a job application.
+        Main workflow with hierarchical selective regeneration
 
-        NEW BEHAVIOR: Checks if base resume has section preferences enabled.
-        If enabled, only regenerates selected sections. Otherwise, regenerates entire resume.
+        Checks if base resume has section preferences enabled with hierarchical structure.
+        If enabled, only regenerates selected sections/subsections/items.
         """
         try:
             application_id = ObjectId(application_id)
@@ -100,7 +48,7 @@ class AIController:
             return {"success": False, "error": "Application not found"}
 
         try:
-            # Update status to processing
+            # Update status
             db.applications.update_one(
                 {"_id": ObjectId(application["_id"])},
                 {
@@ -128,56 +76,33 @@ class AIController:
             if not base_latex_content:
                 raise Exception("Could not read base resume template")
 
-            # Step 3: Check if selective regeneration is enabled
+            # Step 3: Check for hierarchical selective regeneration
             section_prefs = base_resume.get("section_preferences", {})
             selective_enabled = section_prefs.get("enabled", False)
-            selected_sections = section_prefs.get("selected_sections", [])
+            sections_config = section_prefs.get("sections", {})
 
-            if selective_enabled and selected_sections:
-                # USE SELECTIVE REGENERATION
-                print(
-                    f"Using selective regeneration for {len(selected_sections)} sections"
+            if selective_enabled and sections_config:
+                # USE HIERARCHICAL SELECTIVE REGENERATION
+                print(f"Using hierarchical selective regeneration")
+
+                tailored_latex = self._regenerate_hierarchical(
+                    base_latex_content,
+                    sections_config,
+                    application["job_description"],
+                    job_analysis,
                 )
 
-                # Parse resume
-                parsed = self.parser_service.parse_resume(base_latex_content)
-
-                # Regenerate only selected sections
-                regenerated = {}
-                for section in parsed["sections"]:
-                    section_id = f"{section.section_type}_{section.start_pos}"
-
-                    if section_id in selected_sections:
-                        print(f"Regenerating section: {section.title}")
-                        new_content = self.claude_service.regenerate_section(
-                            section_content=section.content,
-                            section_type=section.section_type,
-                            job_description=application["job_description"],
-                            job_analysis=job_analysis,
-                            context={
-                                "section_title": section.title,
-                                "has_subsections": len(section.subsections) > 0,
-                            },
-                        )
-                        regenerated[section_id] = new_content
-
-                # Rebuild LaTeX with regenerated sections
-                tailored_latex = self.parser_service.rebuild_latex(
-                    original_content=base_latex_content,
-                    parsed_structure=parsed,
-                    selected_sections={s: True for s in selected_sections},
-                    regenerated_sections=regenerated,
-                )
-
-                regeneration_type = "selective"
+                regeneration_type = "hierarchical_selective"
+                regeneration_details = self._get_regeneration_summary(sections_config)
 
             else:
-                # USE FULL REGENERATION (original behavior)
+                # USE FULL REGENERATION
                 print("Using full resume regeneration")
                 tailored_latex = self.claude_service.tailor_resume(
                     base_latex_content, application["job_description"], job_analysis
                 )
                 regeneration_type = "full"
+                regeneration_details = None
 
             # Step 4: Compile to PDF
             output_filename = (
@@ -200,7 +125,7 @@ class AIController:
 
                 tailored_latex = base_latex_content
 
-            # Step 5: Save generated asset to database
+            # Step 5: Save generated asset
             tex_filename = f"{output_filename}.tex"
             tex_path = f"storage/generated/{tex_filename}"
 
@@ -210,7 +135,7 @@ class AIController:
             content_text = self.latex_service.extract_text_from_latex(tailored_latex)
 
             # Create title based on regeneration type
-            if regeneration_type == "selective":
+            if regeneration_type == "hierarchical_selective":
                 title = f"Tailored Resume (Selective) - {job_analysis.get('position_title', 'Position')}"
             else:
                 title = f"Tailored Resume - {job_analysis.get('position_title', 'Position')}"
@@ -230,7 +155,7 @@ class AIController:
             result = db.generated_assets.insert_one(asset_data)
             generated_asset_id = str(result.inserted_id)
 
-            # Step 6: Update application with results
+            # Step 6: Update application
             update_data = {
                 "status": "completed",
                 "company_name": job_analysis.get("company_name"),
@@ -239,11 +164,11 @@ class AIController:
                 "generated_resume_id": generated_asset_id,
                 "ai_analysis": job_analysis,
                 "updated_at": datetime.utcnow(),
-                "regeneration_type": regeneration_type,  # Track which method was used
+                "regeneration_type": regeneration_type,
             }
 
-            if regeneration_type == "selective":
-                update_data["regenerated_sections"] = selected_sections
+            if regeneration_details:
+                update_data["regeneration_details"] = regeneration_details
 
             db.applications.update_one(
                 {"_id": ObjectId(application["_id"])}, {"$set": update_data}
@@ -256,9 +181,7 @@ class AIController:
                 "tex_path": tex_path,
                 "job_analysis": job_analysis,
                 "regeneration_type": regeneration_type,
-                "sections_regenerated": (
-                    selected_sections if regeneration_type == "selective" else None
-                ),
+                "regeneration_details": regeneration_details,
             }
 
         except Exception as e:
@@ -272,22 +195,141 @@ class AIController:
                 },
             )
 
+            import traceback
+
+            traceback.print_exc()
             return {"success": False, "error": str(e)}
 
+    def _regenerate_hierarchical(
+        self,
+        base_latex: str,
+        sections_config: Dict[str, Any],
+        job_description: str,
+        job_analysis: Dict[str, Any],
+    ) -> str:
+        """
+        Regenerate only selected sections/subsections/items
+
+        sections_config structure:
+        {
+            "experience": {
+                "selected": true,
+                "subsections": {
+                    "experience_0": {
+                        "selected": true,
+                        "items": ["item_0_0", "item_0_1"]
+                    }
+                }
+            }
+        }
+        """
+        # Parse resume into hierarchical structure
+        parsed = self.parser.parse_resume_to_hierarchy(base_latex)
+
+        result_latex = base_latex
+
+        # Process each selected section
+        for section in parsed["sections"]:
+            section_id = section.section_id
+            section_config = sections_config.get(section_id, {})
+
+            if not section_config.get("selected", False):
+                continue  # Skip unselected sections
+
+            print(f"Processing section: {section.title}")
+
+            # Process subsections
+            subsections_config = section_config.get("subsections", {})
+
+            for subsection in section.subsections:
+                subsection_id = subsection.subsection_id
+                subsection_config = subsections_config.get(subsection_id, {})
+
+                # Skip if subsection not selected and no items selected
+                if not subsection_config.get(
+                    "selected", False
+                ) and not subsection_config.get("items", []):
+                    continue
+
+                print(f"  Processing subsection: {subsection.title}")
+
+                selected_items = subsection_config.get("items", [])
+
+                if selected_items:
+                    # Regenerate specific items
+                    print(f"    Regenerating {len(selected_items)} items")
+
+                    for item in subsection.items:
+                        if item.item_id in selected_items:
+                            # Regenerate this specific item
+                            new_content = self.claude_service.regenerate_bullet_point(
+                                item.content,
+                                job_description,
+                                job_analysis,
+                                {
+                                    "section": section.title,
+                                    "subsection": subsection.title,
+                                },
+                            )
+
+                            # Replace in LaTeX
+                            result_latex = result_latex.replace(item.latex, new_content)
+
+                elif subsection_config.get("selected", False):
+                    # Regenerate entire subsection
+                    print(f"    Regenerating entire subsection")
+
+                    new_subsection = self.claude_service.regenerate_subsection(
+                        subsection.latex,
+                        section.section_id,
+                        job_description,
+                        job_analysis,
+                        {"subsection_title": subsection.title},
+                    )
+
+                    # Replace in LaTeX
+                    result_latex = result_latex.replace(
+                        subsection.latex, new_subsection
+                    )
+
+        return result_latex
+
+    def _get_regeneration_summary(
+        self, sections_config: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Create a summary of what was regenerated"""
+        summary = {"sections": [], "total_subsections": 0, "total_items": 0}
+
+        for section_id, section_data in sections_config.items():
+            if section_data.get("selected", False):
+                section_summary = {"section_id": section_id, "subsections": []}
+
+                for subsection_id, subsection_data in section_data.get(
+                    "subsections", {}
+                ).items():
+                    items = subsection_data.get("items", [])
+                    if subsection_data.get("selected", False) or items:
+                        section_summary["subsections"].append(
+                            {"subsection_id": subsection_id, "items_count": len(items)}
+                        )
+                        summary["total_subsections"] += 1
+                        summary["total_items"] += len(items)
+
+                summary["sections"].append(section_summary)
+
+        return summary
+
     def _get_base_resume(self, user_id: str) -> Optional[Dict]:
-        """Get the user's base resume, or a default one"""
-        # Try to get user's active base resume
+        """Get the user's active base resume"""
         base_resume = db.base_resumes.find_one({"user_id": user_id, "is_active": True})
 
         if base_resume:
             return base_resume
 
-        # Try any user resume
         base_resume = db.base_resumes.find_one({"user_id": user_id})
         if base_resume:
             return base_resume
 
-        # Fallback to default base resume if exists
         default_resume = db.base_resumes.find_one({"user_id": "default"})
         return default_resume
 
@@ -353,6 +395,38 @@ class AIController:
                 "success": True,
                 "asset_id": str(result.inserted_id),
                 "content": cover_letter_text,
+            }
+
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def parse_base_resume(self, resume_id: str, user_id: str) -> Dict[str, Any]:
+        """
+        Parse a base resume into hierarchical structure
+        (For backward compatibility with routes that still use this)
+        """
+        try:
+            resume = db.base_resumes.find_one(
+                {"_id": ObjectId(resume_id), "user_id": user_id}
+            )
+
+            if not resume:
+                return {"success": False, "error": "Resume not found"}
+
+            latex_content = self.latex_service.read_base_resume(
+                resume["latex_template_path"]
+            )
+
+            if not latex_content:
+                return {"success": False, "error": "Could not read resume file"}
+
+            parsed = self.parser.parse_resume_to_hierarchy(latex_content)
+            structure = self.parser.serialize_structure(parsed["sections"])
+
+            return {
+                "success": True,
+                "structure": structure,
+                "header": parsed["header"],
             }
 
         except Exception as e:

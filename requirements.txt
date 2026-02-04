@@ -14,9 +14,16 @@ anthropic==0.40.0
 # Environment Variables
 python-dotenv==1.0.0
 
+# HTML Parsing
+beautifulsoup4==4.12.3
+
 # LaTeX Processing (Note: pdflatex must be installed on system)
 # Use: sudo apt-get install texlive-full (Linux)
 # Or: brew install --cask mactex (macOS)
+
+# HTML conversion (Note: pandoc must be installed on system)
+# Use: sudo apt-get install pandoc (Linux)
+# Or: brew install pandoc (macOS)
 
 # Optional: For async processing (recommended for production)
 # celery==5.3.4
